@@ -1,39 +1,84 @@
-const router = require('express').Router();
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
-const authMiddleware = require('../middleware/auth');
+const router = require("express").Router();
+const authMiddleware = require("../middleware/auth");
+const Favorite = require("../models/Favorite");
 
-router.post('/register', async (req, res) => {
-    const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ message: 'Please enter all fields' });
-    try {
-        if (await User.findOne({ username })) return res.status(400).json({ message: 'User already exists' });
-        const newUser = new User({ username, password: await bcrypt.hash(password, 10) });
-        await newUser.save();
-        const payload = { id: newUser.id, username: newUser.username };
-        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
-        res.json({ token, user: payload });
-    } catch (err) { res.status(500).send('Server error'); }
+// Get all favorites for user
+router.get("/", authMiddleware, async (req, res) => {
+  try {
+    const favorites = await Favorite.find({ user: req.user.id }).sort({
+      date_added: -1,
+    });
+    res.json(favorites);
+  } catch (err) {
+    console.error("Get favorites error:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
-router.post('/login', async (req, res) => {
-    const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ message: 'Please enter all fields' });
-    try {
-        const user = await User.findOne({ username });
-        if (!user || !(await bcrypt.compare(password, user.password))) return res.status(400).json({ message: 'Invalid credentials' });
-        const payload = { id: user.id, username: user.username };
-        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
-        res.json({ token, user: payload });
-    } catch (err) { res.status(500).send('Server error'); }
+// Add new favorite
+router.post("/", authMiddleware, async (req, res) => {
+  const { city, country } = req.body;
+
+  // Validation
+  if (!city || !country) {
+    return res.status(400).json({ message: "City and country are required" });
+  }
+
+  try {
+    // Check if favorite already exists
+    const existingFavorite = await Favorite.findOne({
+      user: req.user.id,
+      city: city.trim().toLowerCase(),
+    });
+
+    if (existingFavorite) {
+      return res
+        .status(400)
+        .json({ message: "This city is already in your favorites" });
+    }
+
+    // Create new favorite
+    const newFavorite = new Favorite({
+      user: req.user.id,
+      city: city.trim(),
+      country: country.trim(),
+    });
+
+    await newFavorite.save();
+    res.status(201).json(newFavorite);
+  } catch (err) {
+    console.error("Add favorite error:", err.message);
+
+    if (err.code === 11000) {
+      return res
+        .status(400)
+        .json({ message: "This city is already in your favorites" });
+    }
+
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
-router.get('/user', authMiddleware, async (req, res) => {
-    try {
-        const user = await User.findById(req.user.id).select('-password');
-        res.json(user);
-    } catch (err) { res.status(500).send('Server Error'); }
+// Delete favorite
+router.delete("/:id", authMiddleware, async (req, res) => {
+  try {
+    const favorite = await Favorite.findById(req.params.id);
+
+    if (!favorite) {
+      return res.status(404).json({ message: "Favorite not found" });
+    }
+
+    // Check if user owns this favorite
+    if (favorite.user.toString() !== req.user.id) {
+      return res.status(401).json({ message: "Not authorized" });
+    }
+
+    await Favorite.findByIdAndDelete(req.params.id);
+    res.json({ message: "Favorite removed successfully" });
+  } catch (err) {
+    console.error("Delete favorite error:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 module.exports = router;

@@ -2,6 +2,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
+
+// Import routes
 const weatherRoute = require("./routes/weather");
 const authRoutes = require("./routes/auth");
 const favoriteRoutes = require("./routes/favorites");
@@ -19,11 +21,17 @@ app.use(
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
+
 // MongoDB connection with connection pooling for serverless
 let cachedConnection = null;
 
 async function connectToDatabase() {
-  if (cachedConnection) {
+  if (cachedConnection && mongoose.connection.readyState === 1) {
     return cachedConnection;
   }
 
@@ -34,6 +42,8 @@ async function connectToDatabase() {
       maxPoolSize: 10,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
+      bufferCommands: false,
+      bufferMaxEntries: 0,
     });
 
     cachedConnection = connection;
@@ -45,8 +55,10 @@ async function connectToDatabase() {
   }
 }
 
-// Connect to database
-connectToDatabase();
+// Connect to database on startup
+connectToDatabase().catch((err) => {
+  console.error("Failed to connect to database:", err.message);
+});
 
 // Routes
 app.use("/api/weather", weatherRoute);
@@ -59,6 +71,8 @@ app.get("/api", (req, res) => {
     message: "API is running...",
     timestamp: new Date().toISOString(),
     env: process.env.NODE_ENV || "development",
+    database:
+      mongoose.connection.readyState === 1 ? "connected" : "disconnected",
   });
 });
 
@@ -67,13 +81,21 @@ app.use((err, req, res, next) => {
   console.error("Error:", err.stack);
   res.status(500).json({
     error: "Something went wrong!",
-    ...(process.env.NODE_ENV !== "production" && { details: err.message }),
+    ...(process.env.NODE_ENV !== "production" && {
+      details: err.message,
+      stack: err.stack,
+    }),
   });
 });
 
 // 404 handler
 app.use("*", (req, res) => {
-  res.status(404).json({ error: "Route not found" });
+  console.log(`404 - Route not found: ${req.method} ${req.originalUrl}`);
+  res.status(404).json({
+    error: "Route not found",
+    path: req.originalUrl,
+    method: req.method,
+  });
 });
 
 // Only listen on port in development
