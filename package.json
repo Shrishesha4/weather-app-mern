@@ -1,0 +1,17 @@
+{
+  "name": "weather-app-mern-root",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Orchestrator for MERN weather app",
+  "scripts": {
+    "install-all": "npm install && npm install --prefix api && npm install --prefix client",
+    "dev": "docker-compose up --build",
+    "down": "docker-compose down",
+    "vercel-build": "cd api && npm install && cd ../client && npm install && npm run build"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
