@@ -2,16 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": [
-        "api/index.js",
-        "api/models/Favorite.js",
-        "api/models/Search.js",
-        "api/models/User.js",
-        "api/middleware/auth.js",
-        "api/routes/favorites.js",
-        "api/routes/auth.js",
-        "api/routes/weather.js"
-      ],
+      "src": "api/index.js",
       "use": "@vercel/node"
     },
     {
@@ -25,16 +16,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": [
-        "/api/index.js",
-        "/api/models/Favorite.js",
-        "/api/models/Search.js",
-        "/api/models/User.js",
-        "/api/middleware/auth.js",
-        "/api/routes/favorites.js",
-        "/api/routes/auth.js",
-        "/api/routes/weather.js"
-      ]
+      "dest": "/api/index.js"
     },
     {
       "src": "/(.*)",
