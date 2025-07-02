@@ -19,6 +19,18 @@
       "dest": "/api/index.js"
     },
     {
+      "src": "/api/models(.*)",
+      "dest": "/api/models/Favorite.js"
+    },
+    {
+      "src": "/api/models(.*)",
+      "dest": "/api/models/Search.js"
+    },
+    {
+      "src": "/api/models(.*)",
+      "dest": "/api/models/User.js"
+    },
+    {
       "src": "/(.*)",
       "dest": "/client/dist/$1"
     }
