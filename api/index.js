@@ -99,11 +99,11 @@ app.use("*", (req, res) => {
 });
 
 // Only listen on port in development
-if (process.env.NODE_ENV !== "production") {
-  const PORT = process.env.PORT || 3001;
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`API Server listening on port ${PORT}`);
-  });
-}
+// if (process.env.NODE_ENV !== "production") {
+//   const PORT = process.env.PORT || 3001;
+//   app.listen(PORT, "0.0.0.0", () => {
+//     console.log(`API Server listening on port ${PORT}`);
+//   });
+// }
 
 module.exports = app;
